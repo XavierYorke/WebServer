@@ -1,5 +1,6 @@
-#include "../include/http_conn.h"
+#include "http_conn.h"
 #include <iostream>
+
 
 // 定义HTTP响应的一些状态信息
 const char* ok_200_title = "OK";
@@ -13,7 +14,9 @@ const char* error_500_title = "Internal Error";
 const char* error_500_form = "There was an unusual problem serving the requested file.\n";
 
 // 网站的根目录
-const char* doc_root = "/home/u20/Linux/WebServer/resources";
+// const char* doc_root = "/home/mayfly/Linux/WebServer/resources";
+char* doc_root;
+
 
 //  初始化
 int http_conn::m_epollfd = -1;
@@ -258,9 +261,11 @@ http_conn::HTTP_CODE http_conn::process_read() {
 // 当得到一个完整、正确的HTTP请求时，我们就分析目标文件的属性，
 // 如果目标文件存在、对所有用户可读，且不是目录，则使用mmap将其
 // 映射到内存地址m_file_address处，并告诉调用者获取文件成功
-http_conn::HTTP_CODE http_conn::do_request()
-{
-    // "/home/nowcoder/webserver/resources"
+http_conn::HTTP_CODE http_conn::do_request() {
+    doc_root = getcwd(nullptr, 256);
+    strncat(doc_root, "/resources/", 16);
+    std::cout << doc_root << std::endl;
+
     strcpy(m_real_file, doc_root);
     int len = strlen(doc_root);
     strncpy(m_real_file + len, m_url, FILENAME_LEN - len - 1);

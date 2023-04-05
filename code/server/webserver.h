@@ -18,8 +18,6 @@
 #include "threadpool.h"
 #include "http_conn.h"
 
-#define MAX_FD 65535 // 最大文件描述符个数
-#define MAX_EVENT_NUMBER 10000 // 监听的最大事件数量
 
 class WebServer {
 
@@ -37,8 +35,8 @@ private:
     void epoll_init();
 
     http_conn* users;
-    int max_fd = 65535;                 // 最大文件描述符个数
-    int max_event_number = 10000;       // 监听的最大事件数量
+    static const int MAX_FD = 65535;    // 最大文件描述符个数
+    static const int MAX_EVENT_NUMBER = 10000;       // 监听的最大事件数量
     epoll_event* events;
     int epollfd;
     int listenfd;

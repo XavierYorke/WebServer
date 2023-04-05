@@ -1,4 +1,4 @@
-#include "../include/webserver.h"
+#include "webserver.h"
 
 extern void addfd(int epollfd, int fd, bool one_shot);
 extern void removefd(int epollfd, int fd);
@@ -6,7 +6,7 @@ extern void removefd(int epollfd, int fd);
 WebServer::WebServer(int port) {
     addsig(SIGPIPE, SIG_IGN);
     threadpool_init();
-    users = new http_conn[max_fd];
+    users = new http_conn[MAX_FD];
     socket_init(port);
     epoll_init();
 }
@@ -21,7 +21,7 @@ WebServer::~WebServer() {
 void WebServer::start() {
     while (true) {
         // 检测到的事件数
-        int num = epoll_wait(epollfd, events, max_event_number, -1);
+        int num = epoll_wait(epollfd, events, MAX_EVENT_NUMBER, -1);
         if ((num < 0) && (errno != EINTR)) {
             printf("epoll failure\n");
             break;
@@ -126,7 +126,7 @@ void WebServer::socket_init(int port) {
 
 void WebServer::epoll_init() {
     // 创建epoll对象，事件数组，添加
-    events = new epoll_event[max_event_number];
+    events = new epoll_event[MAX_EVENT_NUMBER];
     epollfd = epoll_create(5);
 
     // 将监听的文件描述符添加到epoll对象中
