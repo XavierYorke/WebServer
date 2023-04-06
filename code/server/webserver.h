@@ -14,9 +14,9 @@
 #include <sys/epoll.h>
 #include <signal.h>
 #include <assert.h>
-#include "locker.h"
-#include "threadpool.h"
-#include "http_conn.h"
+#include "../pool/locker.h"
+#include "../pool/threadpool.h"
+#include "../http/http_conn.h"
 
 
 class WebServer {
@@ -35,7 +35,7 @@ private:
     void epoll_init();
 
     http_conn* users;
-    static const int MAX_FD = 65535;    // 最大文件描述符个数
+    static const int MAX_FD = 65535;                 // 最大文件描述符个数
     static const int MAX_EVENT_NUMBER = 10000;       // 监听的最大事件数量
     epoll_event* events;
     int epollfd;

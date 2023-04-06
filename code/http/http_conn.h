@@ -16,7 +16,7 @@
 #include <sys/mman.h>
 #include <stdarg.h>
 #include <errno.h>
-#include "locker.h"
+#include "../pool/locker.h"
 #include <sys/uio.h>
 
 
@@ -48,7 +48,7 @@ public:
         CHECK_STATE_HEADER      : 当前正在分析头部字段
         CHECK_STATE_CONTENT     : 当前正在解析请求体
     */
-    enum CHECK_STATE { CHECK_STATE_REQUESTLINE = 0, CHECK_STATE_HEADER, CHECK_STATE_CONTENT };
+    enum CHECK_STATE {CHECK_STATE_REQUESTLINE = 0, CHECK_STATE_HEADER, CHECK_STATE_CONTENT};
 
     /*
         服务器处理HTTP请求的可能结果，报文解析的结果
@@ -61,11 +61,11 @@ public:
         INTERNAL_ERROR      :   表示服务器内部错误
         CLOSED_CONNECTION   :   表示客户端已经关闭连接了
     */
-    enum HTTP_CODE { NO_REQUEST, GET_REQUEST, BAD_REQUEST, NO_RESOURCE, FORBIDDEN_REQUEST, FILE_REQUEST, INTERNAL_ERROR, CLOSED_CONNECTION };
+    enum HTTP_CODE {NO_REQUEST, GET_REQUEST, BAD_REQUEST, NO_RESOURCE, FORBIDDEN_REQUEST, FILE_REQUEST, INTERNAL_ERROR, CLOSED_CONNECTION};
     
     // 从状态机的三种可能状态，即行的读取状态，分别表示
     // 1.读取到一个完整的行 2.行出错 3.行数据尚且不完整
-    enum LINE_STATUS { LINE_OK = 0, LINE_BAD, LINE_OPEN };
+    enum LINE_STATUS {LINE_OK = 0, LINE_BAD, LINE_OPEN};
 
 
 private:

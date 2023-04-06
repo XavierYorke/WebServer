@@ -2,7 +2,7 @@ CXX = g++
 # CFLAGS = -std=c++14 -O2 -Wall -g 
 
 TARGET = server
-OBJS = ../code/src/*.cpp ../code/main.cpp
+OBJS = ../code/http/*.cpp ../code/server/*.cpp ../code/main.cpp
 
 all: $(OBJS)
 	$(CXX) $(OBJS) -o ../bin/$(TARGET)  -pthread

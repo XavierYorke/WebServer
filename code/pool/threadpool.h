@@ -12,29 +12,15 @@ template<typename T>
 class threadpool {
 
 private:
-    // 线程的数量
-    int m_thread_number;
-
-    // 线程池数组，大小为m_thread_number
-    pthread_t* m_threads;
-
-    // 请求队列中最多允许的，等待处理的请求数量
-    int m_max_requests;
-
-    // 请求队列
-    std::list<T*> m_workqueue;
-
-    // 互斥锁
-    locker m_queuelocker;
-
-    // 信号量用来判断是否有任务需要处理
-    sem m_queuestat;
-
-    // 是否结束线程
-    bool m_stop;
-
-    // 静态函数不能访问非静态成员
-    static void* worker(void* arg);
+    
+    int m_thread_number;                        // 线程的数量
+    pthread_t* m_threads;                       // 线程池数组，大小为m_thread_number
+    int m_max_requests;                         // 请求队列中最多允许的，等待处理的请求数量
+    std::list<T*> m_workqueue;                  // 请求队列
+    locker m_queuelocker;                       // 互斥锁
+    sem m_queuestat;                            // 信号量用来判断是否有任务需要处理
+    bool m_stop;                                // 是否结束线程
+    static void* worker(void* arg);             // 静态函数不能访问非静态成员
     void run();
 
 public:

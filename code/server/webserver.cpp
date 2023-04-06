@@ -125,7 +125,7 @@ void WebServer::socket_init(int port) {
 }
 
 void WebServer::epoll_init() {
-    // 创建epoll对象，事件数组，添加
+    // 创建epoll对象，事件数组
     events = new epoll_event[MAX_EVENT_NUMBER];
     epollfd = epoll_create(5);
 
