@@ -218,7 +218,7 @@ void http_conn::process() {
     modfd(m_epollfd, m_sockfd, EPOLLOUT);
 }
 
-// 主状态机，解析请求
+// 主状态机，从buffer中取出所有完整的行
 http_conn::HTTP_CODE http_conn::process_read() {
     LINE_STATUS line_status = LINE_OK;
     HTTP_CODE ret = NO_REQUEST;
@@ -235,17 +235,17 @@ http_conn::HTTP_CODE http_conn::process_read() {
 
         switch (m_check_state) {
             case CHECK_STATE_REQUESTLINE:
-                ret = parse_request_line(text);
+                ret = parse_request_line(text);         // 请求行：请求行（Request Line）：包含请求方法（如GET、POST）、URL和HTTP协议版本号
                 if (ret == BAD_REQUEST) return BAD_REQUEST;
                 break;
 
             case CHECK_STATE_HEADER:
-                ret = parse_headers(text);
+                ret = parse_headers(text);              // 请求头（Request Header）：由若干个键值对组成
                 if (ret == BAD_REQUEST) return BAD_REQUEST;
                 else if (ret == GET_REQUEST) return do_request();
 
             case CHECK_STATE_CONTENT:
-                ret = parse_content(text);
+                ret = parse_content(text);              // 请求体（Request Body）：在POST请求中用于传递客户端提交的数据，如表单数据、JSON数据等
                 if (ret == GET_REQUEST) return do_request();
                 line_status = LINE_OPEN;
                 break;
@@ -257,9 +257,9 @@ http_conn::HTTP_CODE http_conn::process_read() {
     return NO_REQUEST;
 }
 
-// 当得到一个完整、正确的HTTP请求时，我们就分析目标文件的属性，
-// 如果目标文件存在、对所有用户可读，且不是目录，则使用mmap将其
-// 映射到内存地址m_file_address处，并告诉调用者获取文件成功
+// 当得到一个完整、正确的HTTP请求时，分析目标文件的属性，
+// 如果目标文件存在、对所有用户可读，且不是目录，
+// 使用mmap将其映射到内存地址m_file_address处，并告诉调用者获取文件成功
 http_conn::HTTP_CODE http_conn::do_request() {
     doc_root = getcwd(nullptr, 256);
     strncat(doc_root, "/resources/", 16);
@@ -284,13 +284,14 @@ http_conn::HTTP_CODE http_conn::do_request() {
 
     // 以只读方式打开文件
     int fd = open(m_real_file, O_RDONLY);
+    
     // 创建内存映射
     m_file_address = (char*)mmap(0, m_file_stat.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
     close(fd);
     return FILE_REQUEST;
 }
 
-// 解析HTTP请求行，获得请求方法，目标URL，HTTP版本
+// 从状态机，解析出一行内容
 http_conn::LINE_STATUS http_conn::parse_line() {
     char temp;
     for (; m_checked_idx < m_read_idx; ++m_checked_idx) {
@@ -315,38 +316,35 @@ http_conn::LINE_STATUS http_conn::parse_line() {
     return LINE_OPEN;
 }
 
-// 解析HTTP请求行，获得请求方法，目标URL,以及HTTP版本号
+// 解析HTTP请求行，获得请求方法，目标URL,以及HTTP版本号 e.g. GET /index.html HTTP/1.1
 http_conn::HTTP_CODE http_conn::parse_request_line(char* text) {
-    // origin text: GET /images/image1.jpg HTTP/1.1  GET / HTTP/1.1
-    // GET /index.html HTTP/1.1
+    
     m_url = strpbrk(text, " \t"); // 判断第二个参数中的字符哪个在text中最先出现
-    //   /images/image1.jpg HTTP/1.1      / HTTP/1.1
+
     if (!m_url) {
         return BAD_REQUEST;
     }
-    // GET\0/index.html HTTP/1.1
+
     *m_url++ = '\0';    // 置位空字符，字符串结束符
+
     char* method = text;
     if (strcasecmp(method, "GET") == 0) { // 忽略大小写比较
         m_method = GET;
     } 
     else return BAD_REQUEST;
-    // /index.html HTTP/1.1
-    // 检索字符串 str1 中第一个不在字符串 str2 中出现的字符下标。
+
     m_version = strpbrk(m_url, " \t");
     if (!m_version) {
         return BAD_REQUEST;
     }
+
     *m_version++ = '\0';
     if (strcasecmp(m_version, "HTTP/1.1") != 0) {
         return BAD_REQUEST;
     }
-    /**
-     * http://192.168.110.129:10000/index.html
-    */
+
     if (strncasecmp(m_url, "http://", 7) == 0) {   
         m_url += 7;
-        // 在参数 str 所指向的字符串中搜索第一次出现字符 c（一个无符号字符）的位置。
         m_url = strchr(m_url, '/');
     }
     if (!m_url || m_url[0] != '/') {
@@ -366,32 +364,41 @@ http_conn::HTTP_CODE http_conn::parse_headers(char* text) {
             m_check_state = CHECK_STATE_CONTENT;
             return NO_REQUEST;
         }
-        // 否则说明我们已经得到了一个完整的HTTP请求
+
+        // 否则说明已经得到了一个完整的HTTP请求
         return GET_REQUEST;
-    } else if (strncasecmp(text, "Connection:", 11) == 0) {
+    } 
+    
+    else if (strncasecmp(text, "Connection:", 11) == 0) {
         // 处理Connection 头部字段  Connection: keep-alive
         text += 11;
         text += strspn(text, " \t");
         if (strcasecmp(text, "keep-alive") == 0) {
             m_linger = true;
         }
-    } else if (strncasecmp(text, "Content-Length:", 15) == 0) {
+    } 
+    
+    else if (strncasecmp(text, "Content-Length:", 15) == 0) {
         // 处理Content-Length头部字段
         text += 15;
         text += strspn(text, " \t");
         m_content_length = atol(text);
-    } else if (strncasecmp(text, "Host:", 5) == 0) {
+    } 
+    
+    else if (strncasecmp(text, "Host:", 5) == 0) {
         // 处理Host头部字段
         text += 5;
         text += strspn(text, " \t");
         m_host = text;
-    } else {
-        printf("oops! unknow header %s\n", text);
+    } 
+    
+    else {
+        printf("Oops! unknow header %s\n", text);
     }
     return NO_REQUEST;
 }
 
-// 我们没有真正解析HTTP请求的消息体，只是判断它是否被完整的读入了
+// 没有真正解析HTTP请求的消息体，只是判断它是否被完整的读入了
 http_conn::HTTP_CODE http_conn::parse_content(char* text) {
     if (m_read_idx >= (m_content_length + m_checked_idx))
     {
@@ -416,8 +423,8 @@ bool http_conn::add_response(const char* format, ...) {
     if(m_write_idx >= WRITE_BUFFER_SIZE) {
         return false;
     }
-    va_list arg_list;
-    va_start(arg_list, format);
+    va_list arg_list;               // 可变参数列表
+    va_start(arg_list, format);     // 初始化可变参数列表
     int len = vsnprintf(m_write_buf + m_write_idx, WRITE_BUFFER_SIZE - 1 - m_write_idx, format, arg_list);
     if(len >= (WRITE_BUFFER_SIZE - 1 - m_write_idx)) {
         return false;
@@ -443,18 +450,15 @@ bool http_conn::add_content_length(int content_len) {
     return add_response("Content-Length: %d\r\n", content_len);
 }
 
-bool http_conn::add_linger()
-{
+bool http_conn::add_linger() {
     return add_response("Connection: %s\r\n", (m_linger == true) ? "keep-alive" : "close");
 }
 
-bool http_conn::add_blank_line()
-{
+bool http_conn::add_blank_line() {
     return add_response("%s", "\r\n");
 }
 
-bool http_conn::add_content(const char* content)
-{
+bool http_conn::add_content(const char* content) {
     return add_response("%s", content);
 }
 
@@ -466,35 +470,35 @@ bool http_conn::add_content_type() {
 bool http_conn::process_write(HTTP_CODE ret) {
     switch (ret)
     {
-        case INTERNAL_ERROR:
+        case INTERNAL_ERROR:                            // 服务器内部错误
             add_status_line(500, error_500_title);
             add_headers(strlen(error_500_form));
             if (! add_content(error_500_form)) {
                 return false;
             }
             break;
-        case BAD_REQUEST:
+        case BAD_REQUEST:                               // 客户端请求格式错误
             add_status_line(400, error_400_title);
             add_headers(strlen(error_400_form));
             if (!add_content(error_400_form)) {
                 return false;
             }
             break;
-        case NO_RESOURCE:
+        case NO_RESOURCE:                               // 请求资源不存在
             add_status_line(404, error_404_title);
             add_headers(strlen(error_404_form));
             if (! add_content(error_404_form)) {
                 return false;
             }
             break;
-        case FORBIDDEN_REQUEST:
+        case FORBIDDEN_REQUEST:                         // 无访问权限
             add_status_line(403, error_403_title);
             add_headers(strlen(error_403_form));
             if (! add_content(error_403_form)) {
                 return false;
             }
             break;
-        case FILE_REQUEST:
+        case FILE_REQUEST:                              // 请求文件存在且可访问
             add_status_line(200, ok_200_title);
             add_headers(m_file_stat.st_size);
             m_iv[ 0 ].iov_base = m_write_buf;
