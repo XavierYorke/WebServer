@@ -29,7 +29,6 @@ public:
 private:
     void addsig(int sig, void(handler)(int));
     void call_addfd(int epollfd, int fd, bool one_shot);
-    void call_removefd(int epollfd, int fd);
     void threadpool_init();
     void socket_init(int port);
     void epoll_init();

@@ -1,4 +1,5 @@
 #include "server/webserver.h"
+#include <netdb.h>
 
 //需要在命令行指定端口号，通过参数传递
 int main(int argc, char* argv[]) {
@@ -12,6 +13,7 @@ int main(int argc, char* argv[]) {
 
     WebServer webserver(port);
     printf("webserver init\n");
+
     webserver.start();
 
     return 0;

@@ -1,7 +1,6 @@
 #include "webserver.h"
 
 extern void addfd(int epollfd, int fd, bool one_shot);
-extern void removefd(int epollfd, int fd);
 
 WebServer::WebServer(int port) {
     addsig(SIGPIPE, SIG_IGN);
@@ -92,12 +91,9 @@ void WebServer::call_addfd(int epollfd, int fd, bool one_shot) {
     addfd(epollfd, fd, one_shot);
 }
 
-void WebServer::call_removefd(int epollfd, int fd) {
-    removefd(epollfd, fd);
-}
 
 void WebServer::threadpool_init() {
-    pool = NULL;
+    pool = nullptr;
     try {
         pool = new threadpool<http_conn>;
     } catch(...) {
@@ -130,6 +126,6 @@ void WebServer::epoll_init() {
     epollfd = epoll_create(5);
 
     // 将监听的文件描述符添加到epoll对象中
-    addfd(epollfd, listenfd, false);
+    call_addfd(epollfd, listenfd, false);
     http_conn::m_epollfd = epollfd;
 }

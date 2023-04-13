@@ -14,7 +14,6 @@ const char* error_500_title = "Internal Error";
 const char* error_500_form = "There was an unusual problem serving the requested file.\n";
 
 // 网站的根目录
-// const char* doc_root = "/home/mayfly/Linux/WebServer/resources";
 char* doc_root;
 
 
@@ -151,7 +150,7 @@ bool http_conn::write()
     }
 
     while(1) {
-        // 分散写
+        // 集中写
         temp = writev(m_sockfd, m_iv, m_iv_count);
         if (temp <= -1) {
             // 如果TCP写缓冲没有空间，则等待下一轮EPOLLOUT事件，虽然在此期间，
@@ -264,7 +263,6 @@ http_conn::HTTP_CODE http_conn::process_read() {
 http_conn::HTTP_CODE http_conn::do_request() {
     doc_root = getcwd(nullptr, 256);
     strncat(doc_root, "/resources/", 16);
-    std::cout << doc_root << std::endl;
 
     strcpy(m_real_file, doc_root);
     int len = strlen(doc_root);
