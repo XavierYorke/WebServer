@@ -63,10 +63,6 @@ void http_conn::init(int sockfd, const sockaddr_in& addr) {
     m_sockfd = sockfd;
     m_address = addr;
 
-    // 设置端口复用
-    int reuse = 1;
-    setsockopt(m_sockfd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
-
     // 添加到epoll对象中
     addfd(m_epollfd, sockfd, true);
 
@@ -166,38 +162,30 @@ bool http_conn::write()
         bytes_have_send += temp;
         bytes_to_send -= temp;
 
-        if (bytes_have_send >= m_iv[0].iov_len)
-        {
+        if (bytes_have_send >= m_iv[0].iov_len) {
             m_iv[0].iov_len = 0;
             m_iv[1].iov_base = m_file_address + (bytes_have_send - m_write_idx);
             m_iv[1].iov_len = bytes_to_send;
         }
-        else
-        {
+        else {
             m_iv[0].iov_base = m_write_buf + bytes_have_send;
             m_iv[0].iov_len = m_iv[0].iov_len - temp;
         }
 
-        if (bytes_to_send <= 0)
-        {
+        if (bytes_to_send <= 0) {
             // 没有数据要发送了
             unmap();
             modfd(m_epollfd, m_sockfd, EPOLLIN);
 
-            if (m_linger)
-            {
+            if (m_linger) {
                 init();
                 return true;
             }
-            else
-            {
+            else {
                 return false;
             }
         }
-
     }
-
-    
 }
 
 // 由线程池中的工作线程调用，处理HTTP请求的入口函数

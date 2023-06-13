@@ -12,7 +12,6 @@ template<typename T>
 class threadpool {
 
 private:
-    
     int m_thread_number;                        // 线程的数量
     pthread_t* m_threads;                       // 线程池数组，大小为m_thread_number
     int m_max_requests;                         // 请求队列中最多允许的，等待处理的请求数量
@@ -46,7 +45,6 @@ threadpool<T>::threadpool(int thread_number, int max_requests):
 
     // 创建thread_number个线程，并将它们设置为线程脱离
     for (int i = 0; i < thread_number; ++i) {
-        // printf("creating the %dth thread\n", i);
 
         // 执行函数woker必须是静态函数，将this传递给静态函数
         if (pthread_create(m_threads + i, NULL, worker, this) != 0) {
